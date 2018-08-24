@@ -21,6 +21,14 @@ import Figure_denoise
 import Plotter
 
 def active_shape_model(X, testimg, max_iter, Nr_incisor):
+    """
+
+    :param X:   Init Guess
+    :param testimg:   target image
+    :param max_iter:   total iteration limitation
+    :param Nr_incisor:   which nr. of incisor is used to do the asm
+    :return:     a model describe the target incisor on the image
+    """
     img = bilateral_filter(testimg)
     img = median_filter(img)
     img = sobel(img)
@@ -31,7 +39,7 @@ def active_shape_model(X, testimg, max_iter, Nr_incisor):
     total_s = 1
     total_theta = 0
     # Begin to iterate.
-    lm_objects = load_training_data()
+    lm_objects = load(Nr_incisor)
     landmarks_pca = PCA.ASM(lm_objects)
     while (n_close < 16 and nb_iter <= max_iter):
 
@@ -54,7 +62,7 @@ def active_shape_model(X, testimg, max_iter, Nr_incisor):
         #print Y
         # 2. Update the parameters (Xt, Yt, s, theta, b) to best fit the
         # new found points X
-        b, t, s, theta = parameter_update(X, Y)
+        b, t, s, theta = parameter_update(X, Y, Nr_incisor)
         """ 
         Apply constraints to the parameters, b, to ensure plausible shapes
         We clip each element b_i of b to b_max*sqrt(l_i) where l_i is the
@@ -97,11 +105,11 @@ def active_shape_model(X, testimg, max_iter, Nr_incisor):
 
 
 
-def parameter_update(X, Y):
+def parameter_update(X, Y, Nr_incisor):
     """This parts strictly follow  Tim Cootes's paper as Protocol 1
     Y should be given pointset or initial guess
     X initial guess"""
-    lm_objects = load_training_data()
+    lm_objects = load(Nr_incisor)
     landmarks_pca =  PCA.ASM(lm_objects)
     b = np.zeros(landmarks_pca.pc_modes.shape[1])
     b_prev = np.ones(landmarks_pca.pc_modes.shape[1])
