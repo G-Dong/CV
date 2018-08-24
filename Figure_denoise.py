@@ -3,7 +3,7 @@ import os
 import hashlib
 import cv2
 import numpy as np
-
+from scipy import ndimage
 
 
 def load_image(path, indices):
@@ -92,6 +92,32 @@ def crop(img,x,y,h, w):
 
 def canny(img):
    return cv2.Canny(img, 30, 45)
+
+def top_hat_transform(img):
+    """Calculates the top-hat transformation of a given image.
+    This transformation enhances the brighter structures in the image.
+
+    Args:
+        img: A grayscale dental x-ray image.
+
+    Returns:
+        The top-hat transformation of the input image.
+
+    """
+    return ndimage.morphology.white_tophat(img, size=400)
+
+def bottom_hat_transform(img):
+    """Calculates the bottom-hat transformation of a given image.
+    This transformation enhances the darker structures in the image.
+
+    Args:
+        img: A grayscale dental x-ray image.
+
+    Returns:
+        The top-hat transformation of the input image.
+
+    """
+    return ndimage.morphology.black_tophat(img, size=80)
 
 
 

@@ -14,7 +14,7 @@ from Figure_denoise import crop
 from GPA import gpa, align_params
 from util import load_training_data
 from pre_process import find_the_normal_to_lm
-from Figure_denoise import median_filter, sobel, bilateral_filter, median_filter, canny
+from Figure_denoise import median_filter, sobel, bilateral_filter, median_filter, canny, top_hat_transform, bottom_hat_transform
 from pre_process import Landmarks
 from Figure_denoise import load_image
 
@@ -30,9 +30,12 @@ def active_shape_model(X, testimg, max_iter, Nr_incisor,search_length):
     :param Nr_incisor:   which nr. of incisor is used to do the asm
     :return:     a model describe the target incisor on the image
     """
-    img = bilateral_filter(testimg)
-    img = median_filter(img)
+    img = median_filter(testimg)
+    img = bilateral_filter(img)
+    #img = top_hat_transform(img)
+    #img = bottom_hat_transform(img)
     img = sobel(img)
+
     X = Landmarks(X).show_points()
     # Initial value
     nb_iter = 0
@@ -61,9 +64,11 @@ def active_shape_model(X, testimg, max_iter, Nr_incisor,search_length):
         if nb_iter == max_iter:
             Y = best_Y
         """
-       # Y =  get_max_along_normal(X, normal_search_range, img)
-        cov, mean = grey_level_model(lm, glm_range)
-        Y = find_the_best_score(lm, img, search_length, glm_range, cov, mean)
+        # Training glm
+        #cov, mean = grey_level_model(lm, glm_range)
+        #Y = find_the_best_score(X, img, search_length, glm_range, cov, mean)
+
+        Y =  get_max_along_normal(X, search_length, img)
         #print Y
         # 2. Update the parameters (Xt, Yt, s, theta, b) to best fit the
         # new found points X
@@ -96,10 +101,10 @@ def active_shape_model(X, testimg, max_iter, Nr_incisor,search_length):
         #                                    title="Fitting incisor nr. %d" % (Nr_incisor,))
         X = X.show_points()
         """Calibration"""
-        # img2 = img.copy()
-        # final_image = drawlines(img2, X)
-        # cv2.imshow('iteration results ', final_image)
-        # cv2.waitKey(10)
+        img2 = img.copy()
+        final_image = drawlines(img2, X)
+        cv2.imshow('iteration results ', final_image)
+        cv2.waitKey(10)
         nb_iter += 1
         print('this is the %d iteration'% nb_iter)
 
@@ -243,7 +248,10 @@ def find_the_best_score(lm, testimg, search_length, glm_range, cov, mean):
         target = np.zeros(2 * glm_range + 1)
         for k in range(2*(search_length - glm_range)):
             for j in range(-search_length, -search_length+(2*glm_range+1)):
-                target[j+search_length] = testimg[int(lm[i, 0] + j), int(lm[i, 1] + normal[i] * j)]
+                if abs(int(lm[i, 0] + j)) >= 999 or abs(int(lm[i, 1] + normal[i] * j)) >= 999:
+                    target[j + search_length] = target[j+search_length - 1]
+                else:
+                    target[j+search_length] = testimg[int(lm[i, 0] + j), int(lm[i, 1] + normal[i] * j)]
            # print (target - mean, k)
             score[k] = (target - mean).T.dot(cov).dot(target - mean)
         index_max_point = np.argmax(score)
@@ -274,7 +282,7 @@ def evaluation(X, Golden_lm):
 if __name__ == '__main__':
     #glm_range = 3
     max_iter = 10
-    search_length = 5
+    search_length = 2
     #source = 'Data\Landmarks\c_landmarks\landmarks1-%d.txt' % 1
    # lm = Landmarks(source).show_points()
    # cov, mean =  grey_level_model(lm, glm_range)
@@ -291,7 +299,7 @@ if __name__ == '__main__':
 
         """Initial position guess"""
         ini_pos = np.array([[570, 360, 390], [620, 470, 390], [640, 570, 370], [640, 670, 370], [640, 400, 670],
-                           [640, 490, 660], [620, 570, 670], [640, 650, 660]])
+                           [630, 500, 680], [620, 590, 630], [640, 650, 610]])
         s = ini_pos[i, 0]
         t = [ini_pos[i, 1], ini_pos[i, 2]]
         Golden_lm = load_training_data(Nr_incisor)
