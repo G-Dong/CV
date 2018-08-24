@@ -225,8 +225,31 @@ def grey_level_model(lm, index, length):
     mean = np.mean(gradient_set, axis = 0)
     print(mean)
     print(np.shape(mean)) # the should be an 2length+1 array
-        #grey_model_all_points = grey_model_all_points.append(gradient_set)
     return cov, mean
+
+
+
+def find_the_best_score(lm, testimg, search_length, glm_range, cov, mean):
+    target = np.zeros(glm_range)
+    normal = find_the_normal_to_lm(lm)
+    target = np.zeros(glm_range)
+    score = np.zeros(search_length - glm_range)
+    max_score =np.zeros(len(lm))
+    for i in range(lm):
+        for k in range(search_length - glm_range):
+            for j in range(-search_length, -search_length+glm_range):
+                target[j] = testimg[int(lm[search_length, 0] + j ), int(lm[search_length, 1] + normal[search_length] * j)]
+            score[k]= (target - mean).T \
+                    .dot(cov) \
+                    .dot(target - mean)
+
+        if score[k] >= score[k+1]:
+            max_score[i] = score[k]
+    return max_score
+
+
+
+
 
 
 
@@ -244,7 +267,7 @@ def evaluation(X, Golden_lm):
     return error_single
 
 if __name__ == '__main__':
-    glm_range = 10
+    glm_range = 5
     max_iter = 10
     source = 'Data\Landmarks\c_landmarks\landmarks1-%d.txt' % 1
     lm = Landmarks(source).show_points()
