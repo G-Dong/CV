@@ -179,9 +179,9 @@ if __name__ == '__main__':
     Nr_incisor = 1
     s = 500
     t = [1370, 890]
-    Golden_lm = load(Nr_incisor)
+    Golden_lm = load_training_data(Nr_incisor) # the function in util refers to the file which only contains 02-14tif.
     Golden_lm = rescale_withoutangle(gpa(Golden_lm)[2], t, s )
-    lm_objects = load_training_data()
+    lm_objects = load_training_data(Nr_incisor)
     landmarks_pca = PCA.ASM(lm_objects)
     #print(np.shape(landmarks_pca.mu_value))
     landmarks_pca_value = rescale_withoutangle(landmarks_pca.mu_value, t, s )
