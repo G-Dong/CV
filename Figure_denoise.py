@@ -74,7 +74,7 @@ def sobel(img):
     i = clahe(img)
     i = median_filter(i)
     #i = img
-    cv2.imshow('clahe', i)
+    #cv2.imshow('clahe', i)
     #use sobel to get edges
     sobelx = cv2.Sobel(i, cv2.CV_64F, 1, 0, ksize=3)
     sobely = cv2.Sobel(i, cv2.CV_64F, 0, 1, ksize=3)
