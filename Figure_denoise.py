@@ -6,7 +6,7 @@ import numpy as np
 
 
 
-def load(path, indices):
+def load_image(path, indices):
     """Loads a series of radiograph images.
 
     Args:
@@ -23,7 +23,6 @@ def load(path, indices):
     files = [path + f for f in files]
     images = []
     for f in files:
-        print(f)
         images.append(cv2.imread(f))
     """
     # help debug
@@ -97,7 +96,9 @@ def canny(img):
 
 
 if __name__ == '__main__':
-    img = load(path='Data\Radiographs', indices=range(1, 15))[0]
+    img = load_image(path='Data\Radiographs', indices=range(1, 15))[0]
+    #print img
+    """
     img_bilater = bilateral_filter(img)
     img_clahe = clahe(img)
     cv2.imshow('bilateral_filter',  bilateral_filter(img))
@@ -105,4 +106,5 @@ if __name__ == '__main__':
     cv2.waitKey(0)
     cv2.imwrite('Data/Configure/bilateral_filter.tif', img_bilater)
     cv2.imwrite('Data/Configure/raw.tif', img)
+    """
 

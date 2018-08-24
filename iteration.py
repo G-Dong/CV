@@ -16,6 +16,7 @@ from util import load_training_data
 from pre_process import find_the_normal_to_lm
 from Figure_denoise import median_filter, sobel, bilateral_filter, median_filter, canny
 from pre_process import Landmarks
+from Figure_denoise import load_image
 
 import Figure_denoise
 import Plotter
@@ -191,33 +192,43 @@ def get_max_along_normal(lm, length, img):
         #print(count) # find how many approximation
     return max_points_along_normal
 
-def grey_level_model(lm, length, img):
+def grey_level_model(lm, index, length):
     """
        lm: is the initial guess
        length: the search range of single points
+       index: The point
        img: should be single channel grey level picture
        return: The maximum value set along each normal
        intensity[g01, g02, g03,...]
                 [g11, g12, g13,...]
     """
     normal = find_the_normal_to_lm(lm)
-    max_points_along_normal = np.zeros((len(lm), 2))
-    gradient = np.zeros((len(lm), length))
+    #gradient = np.zeros((2 * length - 1, 14))
+    grey_model_all_points = []
     for i in range(len(lm)):
-        count = 0
-        for j in range(-length, length - 1):  # for comparing intensity[j] > intensity[j+1]:
-            if abs(int(lm[i, 0])) >= 999 or abs(int(lm[i, 1] + normal[i] * j)) >= 999:
-                gradient[i, j] = gradient[i, j + 1]
-                count += 1
-            else:
-                gradient[i, j] = img[int(lm[i, 0] + j + 1),  int(lm[i, 1] + normal[i]*(j+1))] - img[int(lm[i, 0]),
-                                                                                                     int(lm[i, 1]
-                                                                                                         + normal[i]*j)]
-                gradient[i, :] = gradient[i, :] / sum(gradient[i, :])
-    return gradient
+        gradient_set = np.zeros((14, 2 * length + 1))
+        for img_nr in range(14-1):
+            img = cv2.imread('Data/Radiographs/%02d.tif' % (img_nr+2), 0)
+            for j in range(-length, length):  #
+                #if abs(int(lm[i,0]+ j )) >= 999 or abs(int(lm[i, 1] + normal[i] * j)) >= 999:
+                    # if j == length - 1:
+                    #     raise('Intensity on the last point alonfg this noraml is too large')
+                    #else:
+                    #gradient_set[img_nr,j] = gradient_set[img_nr,j]
+                #else:
+                gradient_set[img_nr, j] = img[int(lm[index, 0] + j + 1), int(lm[index, 1] + normal[index] * (j + 1))] - \
+                                              img[int(lm[index, 0] + j ), int(lm[index, 1] + normal[index] * j)]
+                #print (img[int(lm[i, 0] + j + 1), int(lm[i, 1] + normal[i] * (j + 1))])
+           # print(gradient_set[img_nr, :])
+            gradient_set[img_nr, :] = gradient_set[img_nr, :] / (sum(gradient_set[img_nr, :])+1) # plus 1 for avoid zero dviator
+    cov = np.cov(gradient_set) # this may have axis choosing issues.
+    mean = np.mean(gradient_set, axis = 0)
+    print(mean)
+    print(np.shape(mean)) # the should be an 2length+1 array
+        #grey_model_all_points = grey_model_all_points.append(gradient_set)
+    return cov, mean
 
 
-   
 
 
 def evaluation(X, Golden_lm):
@@ -233,36 +244,40 @@ def evaluation(X, Golden_lm):
     return error_single
 
 if __name__ == '__main__':
-    normal_search_range = 2
+    glm_range = 10
     max_iter = 10
-    for i in range(8):
-        Nr_incisor = i + 1
-        source = 'Data\Landmarks\c_landmarks\landmarks1-%d.txt' % Nr_incisor
-        lm = Landmarks(source).show_points()
-       # print lm # you can print it to check differences.
+    source = 'Data\Landmarks\c_landmarks\landmarks1-%d.txt' % 1
+    lm = Landmarks(source).show_points()
+    print (grey_level_model(lm, 1,  glm_range))
 
-        """Initial position guess"""
-        ini_pos = np.array([[570, 360, 390], [620, 470, 390], [640, 570, 370], [640, 670, 370], [640, 400, 670],
-                           [640, 490, 660], [620, 570, 670], [640, 650, 660]])
-        s = ini_pos[i, 0]
-        t = [ini_pos[i, 1], ini_pos[i, 2]]
-        Golden_lm = load_training_data(Nr_incisor)
-        Golden_lm = rescale_withoutangle(gpa(Golden_lm)[2], t, s )# Y
-        img = cv2.imread('Data/Radiographs/01.tif', 0)
-        init_guess_img = img.copy()
-        crop_img_ori = crop(img, 1000, 500, 1000, 1000)
-        crop_img_init_guess = crop(init_guess_img, 1000, 500, 1000, 1000)
-        crop_correct_lm = crop(init_guess_img, 1000, 500, 1000, 1000)
-        """Drawing initial guess"""
-        #cv2.imshow('first golden model', drawlines(crop_img_init_guess, Golden_lm))
-        cv2.imwrite('Data\Configure\init_guess_incisor-%d.tif' % Nr_incisor, drawlines(crop_img_init_guess, Golden_lm))
-        cv2.imwrite('Data\Configure\correct_lm_incisor-%d.tif' % Nr_incisor, drawlines(crop_correct_lm, lm))
-        #cv2.waitKey(0)
-
-
-        X = active_shape_model(Golden_lm, crop_img_ori, max_iter = max_iter, Nr_incisor = Nr_incisor, normal_search_range = normal_search_range)
-        MSE = evaluation(X, lm)
-        print('The Distance SME of %d incisor is %3.4f' % (Nr_incisor, MSE))
+    # for i in range(8):
+    #     Nr_incisor = i + 1
+    #     source = 'Data\Landmarks\c_landmarks\landmarks1-%d.txt' % Nr_incisor
+    #     lm = Landmarks(source).show_points()
+    #    # print lm # you can print it to check differences.
+    #
+    #     """Initial position guess"""
+    #     ini_pos = np.array([[570, 360, 390], [620, 470, 390], [640, 570, 370], [640, 670, 370], [640, 400, 670],
+    #                        [640, 490, 660], [620, 570, 670], [640, 650, 660]])
+    #     s = ini_pos[i, 0]
+    #     t = [ini_pos[i, 1], ini_pos[i, 2]]
+    #     Golden_lm = load_training_data(Nr_incisor)
+    #     Golden_lm = rescale_withoutangle(gpa(Golden_lm)[2], t, s )# Y
+    #     img = cv2.imread('Data/Radiographs/01.tif', 0)
+    #     init_guess_img = img.copy()
+    #     crop_img_ori = crop(img, 1000, 500, 1000, 1000)
+    #     crop_img_init_guess = crop(init_guess_img, 1000, 500, 1000, 1000)
+    #     crop_correct_lm = crop(init_guess_img, 1000, 500, 1000, 1000)
+    #     """Drawing initial guess"""
+    #     #cv2.imshow('first golden model', drawlines(crop_img_init_guess, Golden_lm))
+    #     cv2.imwrite('Data\Configure\init_guess_incisor-%d.tif' % Nr_incisor, drawlines(crop_img_init_guess, Golden_lm))
+    #     cv2.imwrite('Data\Configure\correct_lm_incisor-%d.tif' % Nr_incisor, drawlines(crop_correct_lm, lm))
+    #     #cv2.waitKey(0)
+    #
+    #
+    #     X = active_shape_model(Golden_lm, crop_img_ori, max_iter = max_iter, Nr_incisor = Nr_incisor, normal_search_range = normal_search_range)
+    #     MSE = evaluation(X, lm)
+    #     print('The Distance SME of %d incisor is %3.4f' % (Nr_incisor, MSE))
 
 
 
