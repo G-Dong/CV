@@ -39,7 +39,7 @@ def active_shape_model(X, testimg, max_iter, Nr_incisor):
     total_s = 1
     total_theta = 0
     # Begin to iterate.
-    lm_objects = load(Nr_incisor)
+    lm_objects = load_training_data(Nr_incisor)
     landmarks_pca = PCA.ASM(lm_objects)
     while (n_close < 16 and nb_iter <= max_iter):
 
@@ -109,7 +109,7 @@ def parameter_update(X, Y, Nr_incisor):
     """This parts strictly follow  Tim Cootes's paper as Protocol 1
     Y should be given pointset or initial guess
     X initial guess"""
-    lm_objects = load(Nr_incisor)
+    lm_objects = load_training_data(Nr_incisor)
     landmarks_pca =  PCA.ASM(lm_objects)
     b = np.zeros(landmarks_pca.pc_modes.shape[1])
     b_prev = np.ones(landmarks_pca.pc_modes.shape[1])
@@ -210,7 +210,7 @@ if __name__ == '__main__':
                            [640, 490, 660], [620, 570, 670], [640, 650, 660]])
         s = ini_pos[i, 0]
         t = [ini_pos[i, 1], ini_pos[i, 2]]
-        Golden_lm = load(Nr_incisor)
+        Golden_lm = load_training_data(Nr_incisor)
         Golden_lm = rescale_withoutangle(gpa(Golden_lm)[2], t, s )# Y
         img = cv2.imread('Data/Radiographs/01.tif', 0)
         init_guess_img = img.copy()
