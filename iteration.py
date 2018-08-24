@@ -20,7 +20,7 @@ from pre_process import Landmarks
 import Figure_denoise
 import Plotter
 
-def active_shape_model(X, testimg, max_iter, Nr_incisor):
+def active_shape_model(X, testimg, max_iter, Nr_incisor,normal_search_range):
     """
 
     :param X:   Init Guess
@@ -58,7 +58,7 @@ def active_shape_model(X, testimg, max_iter, Nr_incisor):
         if nb_iter == max_iter:
             Y = best_Y
         """
-        Y =  get_max_along_normal(X, 2, img)
+        Y =  get_max_along_normal(X, normal_search_range, img)
         #print Y
         # 2. Update the parameters (Xt, Yt, s, theta, b) to best fit the
         # new found points X
@@ -186,18 +186,54 @@ def get_max_along_normal(lm, length, img):
                 count += 1
             else:
                 intensity[j+1] = img[int(lm[i,0]+ j + 1),  int(lm[i,1] + normal[i]*(j+1))] # the multiple part will be too big.
-            if intensity[j+1] > intensity[j]:
+            if abs(intensity[j+1] - intensity[j]) > abs(intensity[j] - intensity[j]):
                 max_points_along_normal[i, :] = [lm[i,0] + j + 1,  lm[i,1] + normal[i]*(j+1)]
         #print(count) # find how many approximation
     return max_points_along_normal
 
+def grey_level_model(lm, length, img):
+    """
+       lm: is the initial guess
+       length: the search range of single points
+       img: should be single channel grey level picture
+       return: The maximum value set along each normal
+       intensity[g01, g02, g03,...]
+                [g11, g12, g13,...]
+    """
+    normal = find_the_normal_to_lm(lm)
+    max_points_along_normal = np.zeros((len(lm), 2))
+    gradient = np.zeros((len(lm), length))
+    for i in range(len(lm)):
+        count = 0
+        for j in range(-length, length - 1):  # for comparing intensity[j] > intensity[j+1]:
+            if abs(int(lm[i, 0])) >= 999 or abs(int(lm[i, 1] + normal[i] * j)) >= 999:
+                gradient[i, j] = gradient[i, j + 1]
+                count += 1
+            else:
+                gradient[i, j] = img[int(lm[i, 0] + j + 1),  int(lm[i, 1] + normal[i]*(j+1))] - img[int(lm[i, 0]),
+                                                                                                     int(lm[i, 1]
+                                                                                                         + normal[i]*j)]
+                gradient[i, :] = gradient[i, :] / sum(gradient[i, :])
+    return gradient
+
+
+   
+
+
 def evaluation(X, Golden_lm):
+    """
+
+    :param X: The ASM model lm of the image
+    :param Golden_lm: The correct lm of image
+    :return: the square mean error
+    """
     error_single = 0
     for i in range(np.shape(X)[0]):
         error_single += (X[i, 0] - Golden_lm[i, 0]) + (X[i, 1] - Golden_lm[i, 1])**2
     return error_single
 
 if __name__ == '__main__':
+    normal_search_range = 2
     max_iter = 10
     for i in range(8):
         Nr_incisor = i + 1
@@ -224,7 +260,7 @@ if __name__ == '__main__':
         #cv2.waitKey(0)
 
 
-        X = active_shape_model(Golden_lm, crop_img_ori, max_iter = max_iter, Nr_incisor = Nr_incisor)
+        X = active_shape_model(Golden_lm, crop_img_ori, max_iter = max_iter, Nr_incisor = Nr_incisor, normal_search_range = normal_search_range)
         MSE = evaluation(X, lm)
         print('The Distance SME of %d incisor is %3.4f' % (Nr_incisor, MSE))
 
