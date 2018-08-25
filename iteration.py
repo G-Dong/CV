@@ -32,10 +32,12 @@ def active_shape_model(X, testimg, max_iter, Nr_incisor,search_length):
     """
     img = median_filter(testimg)
     img = bilateral_filter(img)
+
     #img = top_hat_transform(img)
     #img = bottom_hat_transform(img)
     img = sobel(img)
-
+    #img = canny(img)
+    #img = sobel(img)
     X = Landmarks(X).show_points()
     # Initial value
     nb_iter = 0
@@ -191,13 +193,20 @@ def get_max_along_normal(lm, length, img):
         count = 0
         intensity = np.zeros(length)
         for j in range(-length, length-1): # for comparing intensity[j] > intensity[j+1]:
-            if abs(int(lm[i,0]+ j + 1)) >= 999 or abs(int(lm[i,1] + normal[i]*(j+1))) >= 999:
-                intensity[j + 1] = intensity[j]
+            if abs(int(lm[i,0]+ j)) >= 999 or abs(int(lm[i,1] + normal[i]*j)) >= 999:
+                intensity[j] = intensity[j]
                 count += 1
             else:
-                intensity[j+1] = img[int(lm[i,0]+ j + 1),  int(lm[i,1] + normal[i]*(j+1))] # the multiple part will be too big.
-            if abs(intensity[j+1] - intensity[j]) > abs(intensity[j] - intensity[j]):
-                max_points_along_normal[i, :] = [lm[i,0] + j + 1,  lm[i,1] + normal[i]*(j+1)]
+                if abs(int(lm[i, 0] + j+1)) >= 999 or abs(int(lm[i, 1] + normal[i] * (j+1))) >= 999:
+                    intensity[j] = intensity[j]
+                else:
+                    intensity[j] = img[int(lm[i,0]+ j + 1),  int(lm[i,1] + normal[i]*(j+1))] - \
+                                   img[int(lm[i,0]+ j),  int(lm[i,1] + normal[i]*j)] # the multiple part will be too big.
+        max_intensity_position = np.argmax(intensity)
+
+
+            #if abs(intensity[j+1] - intensity[j]) > abs(intensity[j] - intensity[j]):
+        max_points_along_normal[i, :] = [lm[i,0] + max_intensity_position,  lm[i,1] + normal[i]*max_intensity_position]
         #print(count) # find how many approximation
     return max_points_along_normal
 
@@ -298,8 +307,11 @@ if __name__ == '__main__':
        # print lm # you can print it to check differences.
 
         """Initial position guess"""
-        ini_pos = np.array([[570, 360, 390], [620, 470, 390], [640, 570, 370], [640, 670, 370], [640, 400, 670],
-                           [630, 500, 680], [620, 590, 630], [640, 650, 610]])
+        ini_pos = np.array([[570, 360, 390], [620, 470, 390], [640, 570, 370], [570, 670, 370], [640, 400, 670],
+                           [630, 480, 670], [620, 570, 630], [640, 650, 610]])
+
+        # ini_pos = np.array([[570, 360, 390], [570, 470, 390], [570, 570, 370], [570, 670, 370], [570, 400, 670],
+        #                    [470, 500, 680], [470, 590, 630], [470, 650, 610]])
         s = ini_pos[i, 0]
         t = [ini_pos[i, 1], ini_pos[i, 2]]
         Golden_lm = load_training_data(Nr_incisor)
