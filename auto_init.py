@@ -240,8 +240,13 @@ if __name__ =='__main__':
         #cv2.imshow('X', mask_target_lm)
       #  cv2.waitKey(0)
 
+       true_positive = 0
+       false_positive = 1
+       for i in range(1000):
+           for j in range(1000):
+               if lm[i, j] != 0  and  X[i, j] != 0:
+                   if lm [i, j] + X[i, j] == 3
 
-       #for i r
 
 
     cv2.imwrite('Data\configure_to_Fmeasure\F_measure_lm.tif',mask_correct_lm )
