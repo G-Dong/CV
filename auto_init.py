@@ -136,14 +136,13 @@ if __name__ =='__main__':
         cropped_img = crop(raw_img, 1000, 500, 1000, 1000)
         img = median_filter(cropped_img)
         img = bilateral_filter(img)
-        #print raw_img
         img = top_hat_transform(img)
         img = bottom_hat_transform(img)
         img = sobel(img)
-        cv2.circle(img, (int(final_middle_point[picture, 0]), int(final_middle_point[picture, 1])), 10, (255, 0, 0), 1)
-        cv2.imshow('center circle', img)
-        cv2.waitKey(500)
-        cv2.imwrite('Data\Configure\init_guess_center_point-%d.tif' % picture, img)
+        #cv2.circle(img, (int(final_middle_point[picture, 0]), int(final_middle_point[picture, 1])), 10, (255, 0, 0), 1)
+        #cv2.imshow('center circle', img)
+        #cv2.waitKey(500)
+        #cv2.imwrite('Data\Configure\init_guess_center_point-%d.tif' % picture, img)
 
         x_length_top = 400
         x_length_bot = 300
@@ -159,52 +158,93 @@ if __name__ =='__main__':
             x_13 = int(final_middle_point[i, 0] + (x_length_bot/10)*4)
             y_0 = int(final_middle_point[i, 1] - (y_length - final_middle_point[i, 1])/2)
             y_1 = int(final_middle_point[i, 1] + (y_length - final_middle_point[i, 1])/2)
-        factor_0 = 640
-        factor_1 = 600
+        factor_0 = 630
+        factor_1 = 570
         for i in range (14):
             tmp = np.array([[factor_0, x_00, y_0], [factor_0, x_01, y_0], [factor_0, x_02, y_0], [factor_0, x_03, y_0],
                                     [factor_1, x_10, y_1], [factor_1, x_11, y_1], [factor_1, x_12, y_1], [factor_1, x_13, y_1]])
             auto_ini_pos.append(tmp)
         print auto_ini_pos[0][0]
         print auto_ini_pos[0]
+
+    img = cv2.imread('Data/Radiographs/01.tif', 0)
+    init_guess_img = img.copy()
+    cropped_img = crop(init_guess_img, 1000, 500, 1000, 1000)
+    img_contains_each_incisor = crop(img, 1000, 500, 1000, 1000)
+    img_contains_each_incisor = median_filter(img_contains_each_incisor)
+    img_contains_each_incisor = bilateral_filter(img_contains_each_incisor)
+    img_contains_each_incisor = sobel(img_contains_each_incisor)
+    mask_correct_lm = np.zeros((1000, 1000), dtype='uint8')
+    mask_target_lm = np.zeros((1000, 1000), dtype='uint8')
     for i in range(8):
         Nr_incisor = i + 1
-        source = 'Data\Landmarks\c_landmarks\landmarks1-%d.txt' % Nr_incisor
+        source = 'Data\Landmarks\c_landmarks\landmarks9-%d.txt' % Nr_incisor
         lm = Landmarks(source).show_points()
-       # print lm # you can print it to check differences.
 
         """Initial position guess"""
 
         ini_pos = auto_ini_pos[0]
-
-        # ini_pos = np.array([[570, 360, 390], [570, 470, 390], [570, 570, 370], [570, 670, 370], [570, 400, 670],
-        #                    [470, 500, 680], [470, 590, 630], [470, 650, 610]])
         s = ini_pos[i, 0]
         t = [ini_pos[i, 1], ini_pos[i, 2]]
         Golden_lm = load_training_data(Nr_incisor)
         Golden_lm = rescale_withoutangle(gpa(Golden_lm)[2], t, s )# Y
-        img = cv2.imread('Data/Radiographs/01.tif', 0)
-        init_guess_img = img.copy()
-        cropped_img = crop(init_guess_img, 1000, 500, 1000, 1000)
-        crop_img_init_guess = crop(img, 1000, 500, 1000, 1000)
+        cropped_img = cropped_img.copy()
         img = median_filter(cropped_img)
         img = bilateral_filter(img)
         # print raw_img
         #img = top_hat_transform(img)
         #img = bottom_hat_transform(img)
         img = sobel(img)
+
         """Drawing initial guess"""
         #cv2.imshow('first golden model', drawlines(crop_img_init_guess, Golden_lm))
-        cv2.imwrite('Data\Configure_with_auto_init\_auto_init_guess_incisor-%d.tif' % Nr_incisor, drawlines(crop_img_init_guess, Golden_lm))
+        img_contains_each_incisor = drawlines(img_contains_each_incisor, Golden_lm)
+        cv2.imwrite('Data\Configure_with_auto_init\_auto_init_guess_incisor_img9-%d.tif' % Nr_incisor, drawlines(img_contains_each_incisor, Golden_lm))
         #cv2.imwrite('Data\Configure\correct_lm_incisor-%d.tif' % Nr_incisor, drawlines(crop_correct_lm, lm))
         #cv2.waitKey(0)
 
 
-        X = active_shape_model(Golden_lm, cropped_img, max_iter = 10, Nr_incisor = Nr_incisor, search_length = 2)
-        MSE = evaluation(X, lm)
-        print('The Distance SME of %d incisor is %3.4f' % (Nr_incisor, MSE))
+        X = active_shape_model(Golden_lm, img, max_iter = 10, Nr_incisor = Nr_incisor, search_length = 2)
+      #  X = active_shape_model(Golden_lm, cropped_img, max_iter = 10, Nr_incisor = Nr_incisor, search_length = 2)
+       # MSE = evaluation(X, lm)
+       # print('The Distance SME of %d incisor is %3.4f' % (Nr_incisor, MSE))
+       # F-measure
+        Nr_incisor = i + 1
+        source = 'Data\Landmarks\c_landmarks\landmarks1-%d.txt' % Nr_incisor
+        lm = Landmarks(source).show_points()
+        #   print(lm)
+        for j in range(np.shape(lm)[0]):
+            lm[j, 0] = int(lm[j, 0] - 1000)
+            lm[j, 1] = int(lm[j, 1] - 500)
+        #  print lm[i, 0]
+        #   print lm[i, 1]
+        for j in range(np.shape(lm)[0]):
+            mask_correct_lm[int(lm[j, 1]), int(lm[j, 0])] = 1
+
+        #  print lm[i, 0]
+        #   print lm[i, 1]
+        for j in range(np.shape(lm)[0]):
+            mask_target_lm[int(lm[j, 1]), int(lm[j, 0])] = 2
+
+        for j in range(np.shape(lm)[0]-1):
+            mask_correct_lm = cv2.line(mask_correct_lm, (int(lm[j, 0]), int(lm[j, 1])),
+                     (int(lm[(j + 1), 0]), int(lm[(j + 1), 1])),
+                     (255, 255, 0), 2)
+            mask_correct_lm = cv2.line(mask_correct_lm, (int(lm[0, 0]), int(lm[0, 1])),
+                     (int(lm[39, 0]), int(lm[39, 1])),
+                     (255, 255, 0), 2)
+        drawlines(mask_correct_lm, lm)
+        drawlines(mask_target_lm, X)
+
+       # cv2.imshow('lm', mask_correct_lm)
+        #cv2.imshow('X', mask_target_lm)
+      #  cv2.waitKey(0)
 
 
+       #for i r
 
+
+    cv2.imwrite('Data\configure_to_Fmeasure\F_measure_lm.tif',mask_correct_lm )
+    cv2.imwrite('Data\configure_to_Fmeasure\F_measure_X.tif',mask_target_lm )
 
 

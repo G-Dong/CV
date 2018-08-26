@@ -443,5 +443,8 @@ def drawlines(img, lm):
     for i in range(len(lm)-1):
         cv2.line(img, (int(lm[i, 0]), int(lm[i, 1])),
                  (int(lm[(i + 1), 0]), int(lm[(i + 1), 1])),
-                 (255, 0, 0), 2)
+                 (255, 255, 0), 2)
+    img = cv2.line(img, (int(lm[0, 0]), int(lm[0, 1])),
+                    (int(lm[39, 0]), int(lm[39, 1])),
+                    (255, 255, 0), 2)
     return img

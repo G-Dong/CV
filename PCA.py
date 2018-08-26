@@ -53,7 +53,7 @@ class ASM(object):
             for index, item in enumerate(arr):
                 if item:
                     return index, item
-        npcs, _ = index_of_true(self.variance_explained > 0.99)
+        npcs, _ = index_of_true(self.variance_explained > 0.98)
         npcs += 1
         self.eigvecs = eigvecs[:, :npcs]
         M = []
