@@ -110,7 +110,7 @@ def active_shape_model(X, testimg, max_iter, Nr_incisor,search_length):
         nb_iter += 1
         print('this is the %d iteration'% nb_iter)
 
-    cv2.imwrite('Data\Configure\incisor-%d.tif' % Nr_incisor, final_image)
+    cv2.imwrite('Data\Configure_with_auto_init\incisor-%d.tif' % Nr_incisor, final_image)
     return X
 
 
